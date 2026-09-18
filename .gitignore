@@ -1,0 +1,8 @@
+node_modules/
+main.js
+*.js.map
+_test/harness.cjs
+release/
+submission/community-plugins-entry.json
+data.json
+.DS_Store

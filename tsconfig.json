@@ -1,0 +1,19 @@
+{
+	"compilerOptions": {
+		"baseUrl": ".",
+		"module": "ESNext",
+		"target": "ES2018",
+		"moduleResolution": "node",
+		"isolatedModules": true,
+		"strict": true,
+		"noImplicitAny": true,
+		"strictNullChecks": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"skipLibCheck": true,
+		"inlineSourceMap": true,
+		"inlineSources": true,
+		"lib": ["DOM", "ES2018"]
+	},
+	"include": ["main.ts"]
+}

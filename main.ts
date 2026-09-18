@@ -836,7 +836,7 @@ export default class CanvasSmoothLinkerPlugin extends Plugin {
 			},
 		});
 
-		if (this.settings.debug) console.log("[canvas-smooth-linker] loaded");
+		if (this.settings.debug) console.debug("[canvas-smooth-linker] loaded");
 	}
 
 	private onWindowOpen = (...args: unknown[]): void => {
@@ -909,7 +909,7 @@ export default class CanvasSmoothLinkerPlugin extends Plugin {
 	}
 
 	private log(...args: unknown[]): void {
-		if (this.settings.debug) console.log("[canvas-smooth-linker]", ...args);
+		if (this.settings.debug) console.debug("[canvas-smooth-linker]", ...args);
 	}
 
 	private wait(ms: number): Promise<void> {

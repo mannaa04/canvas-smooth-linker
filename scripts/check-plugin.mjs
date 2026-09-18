@@ -41,6 +41,11 @@ check("name 不含 Obsidian", !/obsidian/i.test(manifest.name));
 check("description 不含 Obsidian", !/obsidian/i.test(manifest.description));
 check("description 以英文句号结尾", manifest.description.trim().endsWith("."));
 check(`description 长度 ≤ 250（当前 ${manifest.description.length}）`, manifest.description.length <= 250);
+check(
+	"description 不含方括号/竖线/emoji 等特殊字符（官方要求）",
+	!/[[\]|{}<>]/.test(manifest.description) && !/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(manifest.description),
+	manifest.description
+);
 check("version 形如 x.y.z", /^\d+\.\d+\.\d+$/.test(manifest.version), manifest.version);
 check("isDesktopOnly 是布尔值", typeof manifest.isDesktopOnly === "boolean");
 check("authorUrl 是 https 链接或者留空", !manifest.authorUrl || /^https:\/\//.test(manifest.authorUrl), manifest.authorUrl);

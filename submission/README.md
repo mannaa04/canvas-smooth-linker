@@ -1,82 +1,72 @@
-# 发布到 GitHub / 上架 Obsidian 社区插件
+# 发布与上架（2026 年新流程）
 
-> 本插件的构建产物 `main.js` **不进仓库**（`.gitignore` 已忽略），它由 Release 附件或 GitHub Actions 提供。
+> **注意**：Obsidian 已经不再通过 GitHub PR 收录插件了。
+> 老流程（往 `obsidianmd/obsidian-releases` 的 `community-plugins.json` 提 PR）已经作废：
+> 那个仓库现在关闭了 Issues，PR 接口返回 404，社区里也搜不到新的 PR。
+> 现在官方走的是 **Obsidian 社区目录**：[community.obsidian.md](https://community.obsidian.md)。
 
-## 一、把代码推到 GitHub
+## 一、推代码到 GitHub
 
 ```bash
 cd <本仓库目录>
 git add -A
-git commit -m "Canvas Smooth Linker 1.3.0"
-git branch -M main
-git remote add origin https://github.com/<你的用户名>/canvas-smooth-linker.git
-git push -u origin main
+git commit -m "Release x.y.z"
+git push origin main
 ```
 
-首次推送会要求登录（HTTPS 用 Personal Access Token，或改用 SSH）。
+> 本机如果需要代理才能访问 GitHub，给 git 配一条只对 github.com 生效的代理即可：
+> `git config --global http.https://github.com.proxy http://127.0.0.1:7897`
 
-## 二、发 Release（BRAT / 社区插件都靠它）
+## 二、发 Release（必须）
+
+官方要求：**Release 的 tag 必须与 `manifest.json` 里的 `version` 完全一致**（不带 `v` 前缀），
+并且附件必须包含 `main.js`、`manifest.json`、`styles.css`（`styles.css` 可选，我们有）。
 
 **方式 A：推 tag，让 GitHub Actions 自动发**（仓库自带 `.github/workflows/release.yml`）
 
 ```bash
-git tag 1.3.0          # 必须与 manifest.json 里的 version 完全一致，不能带 v
-git push origin 1.3.0
+git tag x.y.z
+git push origin x.y.z
 ```
 
 **方式 B：本地打包后手动发**
 
 ```bash
-npm run release        # 生成 release/（三件套 + zip），并打印 gh 命令
-gh release create 1.3.0 release/main.js release/manifest.json release/styles.css \
-  release/canvas-smooth-linker-1.3.0.zip --title "1.3.0" --generate-notes
+npm run release        # 生成 release/（三件套 + zip），并打印后续命令
+gh release create x.y.z release/main.js release/manifest.json release/styles.css \
+  --title "x.y.z" --generate-notes
 ```
 
-Release 附件里**必须**有 `main.js`、`manifest.json`、`styles.css` 这三个文件（Obsidian 的硬性要求，zip 只是给人手动下载用的）。
+## 三、提交到社区目录（取代原来的 PR）
 
-装插件的人这时就能用：
+1. 打开 <https://community.obsidian.md>，用 **Obsidian 账号**登录（没有就去 <https://obsidian.md/account/> 注册）；
+2. 侧边栏 **Profile → GitHub → Connect**，授权后目录才能验证仓库归属（只读权限）；
+3. 侧边栏 **Plugins → Add plugin**，选择仓库 `mannaa04/canvas-smooth-linker`；
+4. 目录会**自动审核**并列出需要修正的地方；要改就发布一个版本号更高的 Release 再重新提交；
+5. 自动审核没有错误后点 **Publish**，插件就会出现在 Obsidian 内的「浏览 → 社区插件」和官网目录里。
 
-- 手动：下载三个文件放进 `<仓库>/.obsidian/plugins/canvas-smooth-linker/`；
-- **BRAT**：`Add beta plugin` → 填仓库地址 → 自动安装并跟随更新（不用上架商店）。
+> 建议在 Profile 里打开 **Action required notifications**，审核发现问题会邮件通知你。
 
-## 三、上架社区插件商店（可选，需要审核）
+## 四、审核要求自查（`npm run check` 会自动检查大部分）
 
-1. 确认仓库是**公开**的，且有 `LICENSE`、`README.md`、`manifest.json`、`versions.json`；
-2. 生成要提交的条目：
-
-   ```bash
-   node scripts/make-submission-entry.mjs <你的GitHub用户名>
-   ```
-
-   会得到 `submission/community-plugins-entry.json`；
-
-3. Fork [obsidianmd/obsidian-releases](https://github.com/obsidianmd/obsidian-releases)，
-   把上面那段 JSON **追加到 `community-plugins.json` 的末尾**（这个 PR 只改这一个文件），然后提 PR；
-4. 等自动校验（机器人会检查 manifest、tag、Release 资产、版本号）与人工审核通过，合并后就会出现在
-   Obsidian 的「浏览社区插件」里。
-
-### 审核常见检查点（本项目已满足）
-
-| 要求 | 状态 |
+| 官方要求 | 我们的状态 |
 | --- | --- |
-| id 只含小写字母/数字/连字符，且不含 `obsidian` | ✅ |
-| name / description 不含 `Obsidian`，description 以句号结尾且 ≤250 字符 | ✅ |
-| `versions.json` 与 `manifest.json` 版本、`minAppVersion` 一致 | ✅ |
-| Release 的 tag 与 `manifest.json` 版本完全一致 | ✅（workflow 会校验） |
-| 仓库里有源码（不能只放打包产物）、有 LICENSE / README | ✅ |
-| 没有提交 `main.js`、`data.json`、`node_modules` | ✅ |
-| `isDesktopOnly` 与实际使用的 API 相符（本项目只用 DOM / Obsidian API） | ✅ |
-| 不发送任何网络请求、不使用 `innerHTML` | ✅ |
+| 仓库根目录有 `README.md` / `LICENSE` / `manifest.json` | ✅（README 摘录会显示在目录页） |
+| Release 的 tag = manifest 的 version，附件含三件套 | ✅（CI 会校验 tag） |
+| `description` ≤ 250 字符、以句号结尾、不以 "This is a plugin" 开头、不含 emoji/特殊字符 | ✅（1.3.2 已精简，去掉了 `[[...]]`） |
+| `minAppVersion` 填合适的最低版本 | ✅ `1.13.7` |
+| `isDesktopOnly` 与实际使用的 API 相符（用 Node/Electron 必须为 true） | ✅ 只用 DOM 与 Obsidian API，为 false |
+| `fundingUrl` 只用于赞助链接，不需要就别写 | ✅ 未设置 |
+| 命令 id 不要重复插件 id（Obsidian 自动加前缀） | ✅ `copy-selected-node-link` |
+| 不要保留示例代码 | ✅ 全新项目 |
 
-跑一次 `npm run check` 可以在本地复核上表。
-
-## 四、之后的每次更新
+## 五、之后的每次更新
 
 ```bash
-node scripts/set-version.mjs 1.4.0   # 三处版本号一起改
-npm run build && npm test            # 构建 + 回归测试
-git add -A && git commit -m "Release 1.4.0"
-git push && git tag 1.4.0 && git push origin 1.4.0
+node scripts/set-version.mjs x.y.z    # 三处版本号同步
+npm run build && npm test && npm run check
+git add -A && git commit -m "Release x.y.z"
+git push && git tag x.y.z && git push origin x.y.z    # CI 自动发 Release
 ```
 
-推 tag 后 GitHub Actions 会自动发 Release；已上架商店的插件会在几小时内提示更新。
+上架之后**不需要**每次重新提交目录，用户会直接从 GitHub Release 拿到新版本。

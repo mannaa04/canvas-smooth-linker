@@ -2400,7 +2400,6 @@ class CanvasSmoothLinkerSettingTab extends PluginSettingTab {
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
-		containerEl.createEl("h2", { text: "Canvas Smooth Linker" });
 
 		new Setting(containerEl)
 			.setName("聚焦缩放")
@@ -2480,7 +2479,7 @@ class CanvasSmoothLinkerSettingTab extends PluginSettingTab {
 				})
 			);
 
-		containerEl.createEl("h3", { text: "交互" });
+		new Setting(containerEl).setName("交互").setHeading();
 
 		new Setting(containerEl)
 			.setName("渲染显示文字里的 Markdown / 公式")
@@ -2506,7 +2505,7 @@ class CanvasSmoothLinkerSettingTab extends PluginSettingTab {
 				})
 			);
 
-		containerEl.createEl("h3", { text: "链接外观（画布卡片内）" });
+		new Setting(containerEl).setName("链接外观（画布卡片内）").setHeading();
 
 		new Setting(containerEl)
 			.setName("颜色跟随主题")
@@ -2591,7 +2590,7 @@ class CanvasSmoothLinkerSettingTab extends PluginSettingTab {
 			text: "单个链接想要不同颜色/样式：在显示文字里直接写 HTML，例如 [[画布.canvas#ID|<span style=\"color:#e05252;font-weight:700\">第 3 页</span>]]。",
 		});
 
-		containerEl.createEl("h3", { text: "画布内操作" });
+		new Setting(containerEl).setName("画布内操作").setHeading();
 
 		new Setting(containerEl)
 			.setName("在画布右上角显示「链接样式」按钮")

@@ -1,7 +1,7 @@
 {
 	"id": "canvas-smooth-linker",
 	"name": "Canvas Smooth Linker",
-	"version": "1.3.2",
+	"version": "1.3.3",
 	"minAppVersion": "1.13.7",
 	"description": "Turn internal links inside Canvas cards into PowerPoint-style hyperlinks: clicking a link smoothly pans and zooms the canvas to the target node, without opening a new tab.",
 	"author": "Manna",

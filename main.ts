@@ -2365,17 +2365,94 @@ export default class CanvasSmoothLinkerPlugin extends Plugin {
 				const canvas = targetView ? this.getCanvasObject(targetView) : null;
 				const node = canvas ? this.getNodeById(canvas, nodeId) : null;
 				if (canvas && node) {
-					await this.focusNode(canvas, node, file.path, nodeId);
+					await this.focusNewlyOpenedCanvas(canvas, node, file, nodeId);
 					return;
 				}
 				await this.wait(50);
 			}
 
+			this.log("跨画布跳转：目标画布里没找到节点", { file: file.path, nodeId });
 			if (this.settings.showNoticeOnMissingNode) {
 				new Notice(`canvas-smooth-linker: 未在 ${file.basename} 中找到节点 ${nodeId}`);
 			}
 		} finally {
 			if (this.isActiveTarget(file.path, nodeId)) this.activeTarget = null;
+		}
+	}
+
+	/**
+	 * 跨画布跳转：目标画布是刚打开的，不能立刻聚焦。
+	 *
+	 * 原因：`leaf.openFile()` 之后 Obsidian 还会应用一次它自己保存的视口状态
+	 * （CanvasView.setState → setViewport），如果我们先聚焦，动画结果会被这次恢复覆盖掉，
+	 * 表现就是「只跳到了那一页，但没有平滑放大聚焦」。
+	 *
+	 * 所以这里：等布局完成 → 等视口稳定 → 平滑聚焦 → 之后复核，被覆盖就重新落位。
+	 * 期间只要用户滚轮或按下鼠标，就立刻让路，不再纠正。
+	 */
+	private async focusNewlyOpenedCanvas(
+		canvas: CanvasLike,
+		node: CanvasNodeLike,
+		file: TFile,
+		nodeId: string
+	): Promise<void> {
+		const abortTarget = canvas.wrapperEl ?? canvas.canvasEl ?? null;
+		let userInterrupted = false;
+		const markInterrupted = (): void => {
+			userInterrupted = true;
+		};
+		abortTarget?.addEventListener("wheel", markInterrupted, { passive: true });
+		abortTarget?.addEventListener("pointerdown", markInterrupted, true);
+
+		try {
+			// ① 等容器有尺寸（画布完成布局），否则动画与坐标换算都不可靠
+			const sizeDeadline = Date.now() + 1500;
+			while (Date.now() < sizeDeadline) {
+				const size = getWrapperSize(canvas);
+				if (size.width > 0 && size.height > 0) break;
+				await this.wait(50);
+			}
+
+			// ② 等它自己恢复出来的视口稳定下来（连续两次读数一致）
+			let previous = readViewport(canvas);
+			const stableDeadline = Date.now() + 900;
+			while (previous && Date.now() < stableDeadline) {
+				await this.wait(100);
+				const current = readViewport(canvas);
+				if (!current) break;
+				const stable =
+					Math.abs(current.centerX - previous.centerX) < 0.5 &&
+					Math.abs(current.centerY - previous.centerY) < 0.5 &&
+					Math.abs(current.scale - previous.scale) < 0.005;
+				previous = current;
+				if (stable) break;
+			}
+
+			if (userInterrupted) return;
+
+			// ③ 平滑聚焦
+			await this.focusNode(canvas, node, file.path, nodeId);
+
+			// ④ 复核：有的版本会在聚焦之后才应用保存的视口，把结果覆盖掉
+			const center = this.getNodeCenter(node);
+			if (!center) return;
+			const wanted: ViewportTarget = { centerX: center.x, centerY: center.y, scale: this.getTargetScale() };
+			for (const delay of [300, 900]) {
+				await this.wait(delay);
+				if (userInterrupted) return;
+				const snapshot = readViewport(canvas);
+				if (!snapshot) return;
+				const offCenter =
+					Math.abs(snapshot.centerX - wanted.centerX) > 2 || Math.abs(snapshot.centerY - wanted.centerY) > 2;
+				const offScale = Math.abs(snapshot.scale / wanted.scale - 1) > 0.03;
+				if (!offCenter && !offScale) continue;
+				this.log("跨画布聚焦被覆盖，重新落位", { delay, snapshot, wanted });
+				writeViewport(canvas, snapshot, wanted);
+				await this.settleAndVerify(canvas, snapshot, wanted, getWindowOf(canvas.canvasEl));
+			}
+		} finally {
+			abortTarget?.removeEventListener("wheel", markInterrupted);
+			abortTarget?.removeEventListener("pointerdown", markInterrupted, true);
 		}
 	}
 
